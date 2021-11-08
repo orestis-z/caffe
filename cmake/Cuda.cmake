@@ -224,7 +224,7 @@ function(detect_cuDNN)
   find_library(CUDNN_LIBRARY NAMES ${CUDNN_LIB_NAME}
    PATHS ${CUDNN_ROOT} $ENV{CUDNN_ROOT} ${CUDNN_INCLUDE} ${__libpath_hist} ${__libpath_hist}/../lib
    DOC "Path to cuDNN library.")
-  
+
   if (CUDNN_INCLUDE AND CUDNN_LIBRARY)
     set(HAVE_CUDNN  TRUE PARENT_SCOPE)
     set(CUDNN_FOUND TRUE PARENT_SCOPE)
@@ -292,6 +292,9 @@ if (USE_CUDNN)
     list(APPEND Caffe_DEFINITIONS PUBLIC -DUSE_CUDNN)
     list(APPEND Caffe_INCLUDE_DIRS PUBLIC ${CUDNN_INCLUDE})
     list(APPEND Caffe_LINKER_LIBS PUBLIC ${CUDNN_LIBRARY})
+  endif ()
+  if (DNN_PREFER_FASTEST_ALGORITHMS)
+    list(APPEND Caffe_DEFINITIONS PUBLIC -DDNN_PREFER_FASTEST_ALGORITHMS)
   endif ()
 endif ()
 

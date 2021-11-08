@@ -59,7 +59,7 @@ void CuDNNConvolutionLayer<Dtype>::LayerSetUp(
       kernel_h, kernel_w);
 
   // Create tensor descriptor(s) for data and corresponding convolution(s).
-  for (int i = 0; i < bottom.size(); i++) {
+  for (int i = 0; i < bottom.size(); ++i) {
     cudnnTensorDescriptor_t bottom_desc;
     cudnn::createTensor4dDesc<Dtype>(&bottom_desc);
     bottom_descs_.push_back(bottom_desc);
@@ -99,7 +99,7 @@ void CuDNNConvolutionLayer<Dtype>::Reshape(
   const int stride_h = stride_data[0];
   const int stride_w = stride_data[1];
 
-  for (int i = 0; i < bottom.size(); i++) {
+  for (int i = 0; i < bottom.size(); ++i) {
     cudnn::setTensor4dDesc<Dtype>(&bottom_descs_[i],
         this->num_,
         this->channels_ / this->group_, height, width,
@@ -116,7 +116,7 @@ void CuDNNConvolutionLayer<Dtype>::Reshape(
 
   // Specify workspace limit for kernels directly until we have a
   // planning strategy and a rewrite of Caffe's GPU memory mangagement
-  constexpr size_t workspace_limit_bytes = 8 * 1024 * 1024;
+  constexpr size_t WORKSPACE_LIMIT_BYTES = 8 * 1024 * 1024;
 
 #if CUDNN_VERSION_MIN(8, 0, 0)
     int returned_alg_count;
@@ -133,7 +133,16 @@ void CuDNNConvolutionLayer<Dtype>::Reshape(
         &returned_alg_count,
         fwd_algo_perf_));
 
-    int min_memory = workspace_limit_bytes;
+    // CUDNN_CHECK(cudnnFindConvolutionForwardAlgorithm(handle_[0],
+    //     bottom_descs_[i],
+    //     filter_desc_,
+    //     conv_descs_[i],
+    //     top_descs_[i],
+    //     CUDNN_CONVOLUTION_FWD_ALGO_COUNT,
+    //     &returned_alg_count,
+    //     fwd_algo_perf_));
+
+    int min_memory = WORKSPACE_LIMIT_BYTES;
     for (int n = 0; n < returned_alg_count; ++n) {
         if (fwd_algo_perf_[n].status == CUDNN_STATUS_SUCCESS &&
             fwd_algo_perf_[n].memory < min_memory)
@@ -157,7 +166,7 @@ void CuDNNConvolutionLayer<Dtype>::Reshape(
       conv_descs_[i],
       top_descs_[i],
       CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT, // will return the fastest algorithm that fits within the memory limit that the user provided.
-      workspace_limit_bytes,
+      WORKSPACE_LIMIT_BYTES,
       &fwd_algo_[i]));
 
     CUDNN_CHECK(cudnnGetConvolutionForwardWorkspaceSize(handle_[0],
@@ -173,7 +182,7 @@ void CuDNNConvolutionLayer<Dtype>::Reshape(
   // reduce over all workspace sizes to get a maximum to allocate / reallocate
   size_t max_workspace = 0;
 
-  for (size_t i = 0; i < bottom.size(); i++)
+  for (size_t i = 0; i < bottom.size(); ++i)
     max_workspace = std::max(max_workspace, workspace_fwd_sizes_[i]);
   // ensure all groups have enough workspace
   const size_t total_max_workspace = max_workspace * (this->group_ * CUDNN_STREAMS_PER_GROUP);
@@ -189,7 +198,7 @@ void CuDNNConvolutionLayer<Dtype>::Reshape(
     cudaError_t err = cudaMalloc(&(this->workspaceData), workspaceSizeInBytes);
     if (err != cudaSuccess) {
       // force zero memory path
-      for (int i = 0; i < bottom.size(); i++) {
+      for (int i = 0; i < bottom.size(); ++i) {
         workspace_fwd_sizes_[i] = 0;
         fwd_algo_[i] = CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM;
       }
@@ -210,10 +219,9 @@ void CuDNNConvolutionLayer<Dtype>::Reshape(
   }
 
   // Tensor descriptor for bias.
-  if (this->bias_term_) {
+  if (this->bias_term_)
     cudnn::setTensor4dDesc<Dtype>(&bias_desc_,
         1, this->num_output_ / this->group_, 1, 1);
-  }
 }
 
 template <typename Dtype>
@@ -222,7 +230,7 @@ CuDNNConvolutionLayer<Dtype>::~CuDNNConvolutionLayer() {
   if (!handles_setup_)
     return;
 
-  for (int i = 0; i < bottom_descs_.size(); i++) {
+  for (int i = 0; i < bottom_descs_.size(); ++i) {
     cudnnDestroyTensorDescriptor(bottom_descs_[i]);
     cudnnDestroyTensorDescriptor(top_descs_[i]);
     cudnnDestroyConvolutionDescriptor(conv_descs_[i]);

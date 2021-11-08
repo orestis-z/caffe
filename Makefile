@@ -339,6 +339,10 @@ ifeq ($(USE_CUDNN), 1)
 	COMMON_FLAGS += -DUSE_CUDNN
 endif
 
+ifeq ($(DNN_PREFER_FASTEST_ALGORITHMS), 1)
+	COMMON_FLAGS += -DDNN_PREFER_FASTEST_ALGORITHMS
+endif
+
 # NCCL acceleration configuration
 ifeq ($(USE_NCCL), 1)
 	LIBRARIES += nccl
