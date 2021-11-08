@@ -10,7 +10,6 @@ namespace caffe {
 // can use separate streams for calculating the gradient w.r.t.
 // bias, filter weights, and bottom data for each group independently
 #define CUDNN_STREAMS_PER_GROUP 3
-#define DNN_PREFER_FASTEST_ALGORITHMS true
 
 /**
  * TODO(dox) explain cuDNN interface
@@ -142,8 +141,9 @@ void CuDNNConvolutionLayer<Dtype>::Reshape(
             found_conv_algorithm = true;
             fwd_algo_[i] = fwd_algo_perf_[n].algo;
             min_memory = fwd_algo_perf_[n].memory;
-            if (DNN_PREFER_FASTEST_ALGORITHMS)
-                break;
+#ifdef DNN_PREFER_FASTEST_ALGORITHMS
+            break;
+#endif
         }
     }
     if (!found_conv_algorithm)
